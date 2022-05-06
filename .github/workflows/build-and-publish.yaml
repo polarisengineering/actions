@@ -1,0 +1,124 @@
+name: build and publish
+
+on:
+  workflow_call:
+    inputs:
+      client:
+        description: client name, one word, no dashes/underscores/whatever
+        required: true
+        type: string
+      application:
+        description: application name
+        required: true
+        type: string
+      env:
+        description: environment
+        required: true
+        type: string
+      project:
+        description: project name. Default to "platform" for historical reasons
+        required: false
+        type: string
+        default: platform
+
+      patch:
+        description: whether patch the relevant environment
+        type: boolean
+        required: false
+        default: true
+
+      aws-region:
+        description: aws region where we work
+        type: string
+        required: false
+        default: eu-south-1
+      git-user-name:
+        description: git user name
+        type: string
+        required: false
+        default: ci bot
+      git-user-email:
+        description: git user email
+        type: string
+        required: false
+        default: alessandro.ogier+polaris@gmail.com
+
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      GH_PAT:
+        required: false
+      CI_SSH_KEY:
+        required: true
+      docker-build-extra-args:
+        description: docker build extra arguments, like "--build-arg FOO=BAR -t ciao"
+        required: false
+
+jobs:
+
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ inputs.aws-region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKER_BUILDKIT: 1
+        run: |
+
+          docker build . \
+            ${{ secrets.docker-build-extra-args }} \
+            --tag \
+            $ECR_REGISTRY/${{ inputs.project }}/${{ inputs.application }}:${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}
+
+          docker push \
+            $ECR_REGISTRY/${{ inputs.project }}/${{ inputs.application }}:${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}
+
+      - name: checkout infra
+        if: inputs.patch == true
+        uses: actions/checkout@v3
+        with:
+          repository: polarisengineering/infrastructure
+          ssh-key: ${{ secrets.CI_SSH_KEY }}
+          path: __infra
+          ref: develop
+
+      - name: patch application
+        working-directory: __infra
+        if: inputs.patch == true
+        run: |
+          set -x
+          pip install yq
+
+          git pull
+
+          yq --in-place --yaml-output \
+            ".image.tag=\"${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}\"" \
+            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
+          git add \
+            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
+
+          git config --global committer.email "${{ inputs.git-user-email }}"
+          git config --global committer.name "${{ inputs.git-user-name }}"
+
+          git config --global author.email "$(cd .. && git log --format='%ae' ${{ github.sha }} -n1)"
+          git config --global author.name "$(cd .. && git log --format='%an' ${{ github.sha }} -n1)"
+
+          git commit -m "deployed ${{ inputs.project }}-${{ inputs.client }}-${{ inputs.application }} on ${{ inputs.env }}"
+
+          git push origin develop
