@@ -64,30 +64,40 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: Prepare Variables
+        id: vars
+        shell: bash
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          set -x
+
+          read -r IMAGE_VERSION REVISION <<< $(
+            echo ${{ github.ref }} \
+              | sed 's|refs/tags/||; s/_/ /'
+          )
+
+          echo "::set-output name=image-name::414533524039.dkr.ecr.eu-south-1.amazonaws.com/${{ inputs.project }}/${{ inputs.application }}
+          echo "::set-output name=image-tag::${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}"
+
+      - name: checkout action
+        uses: actions/checkout@v3
+        with:
+          repository: polarisengineering/infrastructure-actions-build-push-container
+          ssh-key: ${{ secrets.CI_SSH_KEY }}
+          path: __actions-build-push-container
+          ref: feature/init
+
+      - name: build and push image
+        uses: ./__actions-build-push-container
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ inputs.aws-region }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+          image-name: ${{ steps.vars.outputs.image-name }}
+          image-tag: ${{ steps.vars.outputs.image-tag }}
 
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          DOCKER_BUILDKIT: 1
-        run: |
-
-          docker build . \
-            ${{ secrets.docker-build-extra-args }} \
-            --tag \
-            $ECR_REGISTRY/${{ inputs.project }}/${{ inputs.application }}:${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}
-
-          docker push \
-            $ECR_REGISTRY/${{ inputs.project }}/${{ inputs.application }}:${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}
+          docker-build-extra-args: ${{ secrets.docker-build-extra-args }}
 
       - name: checkout infra
         if: inputs.patch == true
