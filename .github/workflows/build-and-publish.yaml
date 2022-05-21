@@ -74,7 +74,7 @@ jobs:
 
           read -r IMAGE_VERSION REVISION <<< $(
             echo ${{ github.ref }} \
-              | sed 's|refs/tags/||; s/_/ /'
+              | sed 's|refs/[a-z]+/||; s/_/ /'
           )
 
           echo "::set-output name=image-name::414533524039.dkr.ecr.eu-south-1.amazonaws.com/${{ inputs.project }}/${{ inputs.application }}"
