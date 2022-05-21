@@ -67,8 +67,6 @@ jobs:
       - name: Prepare Variables
         id: vars
         shell: bash
-        env:
-          DOCKER_BUILDKIT: 1
         run: |
           set -x
 
