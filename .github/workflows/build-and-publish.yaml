@@ -36,7 +36,7 @@ on:
         description: git user name
         type: string
         required: false
-        default: ci bot
+        default: Lone Starr
       git-user-email:
         description: git user email
         type: string
