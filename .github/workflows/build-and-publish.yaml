@@ -91,10 +91,8 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
           image-name: ${{ steps.vars.outputs.image-name }}
           image-tag: ${{ steps.vars.outputs.image-tag }}
-
           docker-build-extra-args: ${{ secrets.docker-build-extra-args }}
 
       - name: checkout infra
@@ -109,9 +107,16 @@ jobs:
       - name: patch application
         working-directory: __infra
         if: inputs.patch == true
+        shell: bash
         run: |
           set -x
           pip install yq
+
+          git config --global committer.email "${{ inputs.git-user-email }}"
+          git config --global committer.name "${{ inputs.git-user-name }}"
+
+          git config --global author.email "$(cd .. && git log --format='%ae' ${{ github.sha }} -n1)"
+          git config --global author.name "$(cd .. && git log --format='%an' ${{ github.sha }} -n1)"
 
           git pull
 
@@ -121,12 +126,12 @@ jobs:
           git add \
             manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
 
-          git config --global committer.email "${{ inputs.git-user-email }}"
-          git config --global committer.name "${{ inputs.git-user-name }}"
-
-          git config --global author.email "$(cd .. && git log --format='%ae' ${{ github.sha }} -n1)"
-          git config --global author.name "$(cd .. && git log --format='%an' ${{ github.sha }} -n1)"
 
           git commit -m "deployed ${{ inputs.project }}-${{ inputs.client }}-${{ inputs.application }} on ${{ inputs.env }}"
 
-          git push origin develop
+          TRIES=0
+          until [ $TRIES -eq 10 ] || git push origin develop; do
+            git fetch origin develop
+            git rebase origin/develop
+            $(( TRIES++ ))
+          done
