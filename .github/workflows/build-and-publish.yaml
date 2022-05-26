@@ -133,6 +133,6 @@ jobs:
           until [ $TRIES -eq 10 ] || git push origin develop; do
             git fetch origin develop
             git rebase origin/develop
-            $(( TRIES++ ))
+            echo retry $(( TRIES++ ))
             sleep 2
           done
