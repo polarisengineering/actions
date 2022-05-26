@@ -134,4 +134,5 @@ jobs:
             git fetch origin develop
             git rebase origin/develop
             $(( TRIES++ ))
+            sleep 2
           done
