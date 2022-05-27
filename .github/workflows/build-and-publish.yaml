@@ -127,7 +127,7 @@ jobs:
             manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
 
 
-          git commit -m "deployed ${{ inputs.project }}-${{ inputs.client }}-${{ inputs.application }} on ${{ inputs.env }}"
+          git commit -m "${{ inputs.project }}-${{ inputs.client }}: deployed ${{ inputs.application }} on ${{ inputs.env }}"
 
           TRIES=0
           until [ $TRIES -eq 10 ] || git push origin develop; do
