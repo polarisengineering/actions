@@ -47,7 +47,6 @@ on:
         description: optional dockerfile target against which we warm gha cache
         required: false
         type: string
-        default: _no
 
     secrets:
       AWS_ACCESS_KEY_ID:
@@ -96,6 +95,7 @@ jobs:
           image-tag: ${{ steps.vars.outputs.image-tag }}
           docker-build-extra-args: |
             ${{ secrets.docker-build-extra-args }}
+          warm_cache_on: ${{ inputs.warm_cache_on }}
 
       - name: checkout infra
         if: inputs.patch == true
