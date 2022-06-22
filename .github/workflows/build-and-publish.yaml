@@ -47,6 +47,7 @@ on:
         description: optional dockerfile target against which we warm gha cache
         required: false
         type: string
+        default: _no
 
     secrets:
       AWS_ACCESS_KEY_ID:
