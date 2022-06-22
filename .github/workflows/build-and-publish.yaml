@@ -84,7 +84,7 @@ jobs:
           repository: polarisengineering/infrastructure-actions-build-push-container
           ssh-key: ${{ secrets.CI_SSH_KEY }}
           path: __actions-build-push-container
-          ref: feature/init
+          ref: feature/caching
 
       - name: build and push image
         uses: ./__actions-build-push-container
