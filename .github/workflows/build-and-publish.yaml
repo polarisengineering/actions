@@ -43,6 +43,11 @@ on:
         required: false
         default: alessandro.ogier+polaris@gmail.com
 
+      warm_cache_on:
+        description: optional dockerfile target against which we warm gha cache
+        required: false
+        type: string
+
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -69,11 +74,6 @@ jobs:
         shell: bash
         run: |
           set -x
-
-          read -r IMAGE_VERSION REVISION <<< $(
-            echo ${{ github.ref }} \
-              | sed 's|refs/[a-z]+/||; s/_/ /'
-          )
 
           echo "::set-output name=image-name::414533524039.dkr.ecr.eu-south-1.amazonaws.com/${{ inputs.project }}/${{ inputs.application }}"
           echo "::set-output name=image-tag::${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}"
@@ -109,6 +109,8 @@ jobs:
         working-directory: __infra
         if: inputs.patch == true
         shell: bash
+        env:
+          IMAGE_FILE: manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
         run: |
           set -x
           pip install yq
@@ -122,11 +124,9 @@ jobs:
           git pull
 
           yq --in-place --yaml-output \
-            ".image.tag=\"${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}\"" \
-            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
-          git add \
-            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
-
+            ".image.tag=\"${{ steps.vars.outputs.image-tag }}\"" \
+            "$IMAGE_FILE"
+          git add "$IMAGE_FILE"
 
           git commit -m "${{ inputs.project }}-${{ inputs.client }}: deployed ${{ inputs.application }} on ${{ inputs.env }}"
 
