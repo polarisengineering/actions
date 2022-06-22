@@ -93,8 +93,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           image-name: ${{ steps.vars.outputs.image-name }}
           image-tag: ${{ steps.vars.outputs.image-tag }}
-          docker-build-extra-args: |
-            ${{ secrets.docker-build-extra-args }}
+          docker-build-extra-args: ${{ secrets.docker-build-extra-args }}
 
       - name: checkout infra
         if: inputs.patch == true
