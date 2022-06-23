@@ -70,13 +70,8 @@ jobs:
         run: |
           set -x
 
-          read -r IMAGE_VERSION REVISION <<< $(
-            echo ${{ github.ref }} \
-              | sed 's|refs/[a-z]+/||; s/_/ /'
-          )
-
-          echo "::set-output name=image-name::414533524039.dkr.ecr.eu-south-1.amazonaws.com/${{ inputs.project }}/${{ inputs.application }}"
-          echo "::set-output name=image-tag::${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}"
+          echo "::set-output name=image-name::414533524039.dkr.ecr.eu-south-1.amazonaws.com/${{ inputs.project }}/${{ inputs.client }}/${{ inputs.application }}"
+          echo "::set-output name=image-tag::${{ inputs.env }}-${{ github.sha }}"
 
       - name: checkout action
         uses: actions/checkout@v3
