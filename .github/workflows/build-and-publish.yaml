@@ -116,7 +116,7 @@ jobs:
           git pull
 
           yq --in-place --yaml-output \
-            ".image.tag=\"${{ inputs.client }}-${{ inputs.env }}-${{ github.sha }}\"" \
+            ".image.tag=\"${{ steps.vars.outputs.image-tag }}\"" \
             manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
           git add \
             manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
