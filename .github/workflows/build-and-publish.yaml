@@ -103,6 +103,8 @@ jobs:
         working-directory: __infra
         if: inputs.patch == true
         shell: bash
+        env:
+          IMAGES_FILE: manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
         run: |
           set -x
           pip install yq
@@ -115,11 +117,8 @@ jobs:
 
           git pull
 
-          yq --in-place --yaml-output \
-            ".image.tag=\"${{ steps.vars.outputs.image-tag }}\"" \
-            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
-          git add \
-            manifests/projects/${{ inputs.project }}/${{ inputs.application }}/values-${{ inputs.client }}-${{ inputs.env }}-images.yaml
+          yq --in-place --yaml-output ".image.tag=\"${{ steps.vars.outputs.image-tag }}\"" "$IMAGES_FILE"
+          git add "$IMAGES_FILE"
 
 
           git commit -m "${{ inputs.project }}-${{ inputs.client }}: deployed ${{ inputs.application }} on ${{ inputs.env }}"
